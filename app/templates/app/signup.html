@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — AppMarch</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07080d; --surface: #0d0f18; --card: #111420;
+      --border: #1c2035; --border2: #252a42;
+      --cyan: #00f5ff; --violet: #a855f7; --pink: #f72585;
+      --lime: #b5ff3a; --text: #f0f2ff; --text2: #c8cde8; --muted: #7880a8;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(ellipse 70% 60% at 0% 0%, rgba(0,245,255,.07) 0%, transparent 55%),
+        radial-gradient(ellipse 60% 50% at 100% 100%, rgba(168,85,247,.09) 0%, transparent 55%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(247,37,133,.04) 0%, transparent 60%);
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Creature Background Container */
+    .creatures-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: -1;
+      overflow: hidden;
+    }
+
+    .creature {
+      position: absolute; font-size: 24px;
+      animation: roam 20s infinite linear;
+      opacity: 0.6;
+    }
+
+    @keyframes roam {
+      0% { transform: translate(-10vw, 10vh) rotate(0deg); }
+      25% { transform: translate(30vw, 40vh) rotate(10deg); }
+      50% { transform: translate(70vw, 20vh) rotate(-10deg); }
+      75% { transform: translate(90vw, 60vh) rotate(5deg); }
+      100% { transform: translate(110vw, 30vh) rotate(0deg); }
+    }
+
+    .c1 { animation-duration: 25s; top: 10%; left: -5%; }
+    .c2 { animation-duration: 30s; top: 40%; left: -5%; animation-delay: -5s; }
+    .c3 { animation-duration: 22s; top: 70%; left: -5%; animation-delay: -10s; }
+    .c4 { animation-duration: 28s; top: 25%; left: -5%; animation-delay: -15s; }
+
+    .login-wrap {
+      display: grid; grid-template-columns: 1fr 1fr;
+      background: var(--card); border: 1px solid var(--border2);
+      border-radius: 20px; overflow: hidden;
+      width: 100%; max-width: 860px;
+      box-shadow: 0 40px 100px rgba(0,0,0,.6), 0 0 60px rgba(0,245,255,.05);
+      animation: rise .5s ease both;
+    }
+
+    @keyframes rise {
+      from { opacity:0; transform: translateY(24px) scale(.98); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+
+    .login-left {
+      background: linear-gradient(145deg, #0a0d1a, #0d1128);
+      border-right: 1px solid var(--border);
+      padding: 48px 40px;
+      display: flex; flex-direction: column; justify-content: space-between;
+      position: relative; overflow: hidden;
+    }
+
+    .left-logo {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin-bottom: 20px;
+      box-shadow: 0 0 30px rgba(0,245,255,.3);
+      position: relative; z-index: 1;
+    }
+
+    .left-tagline h1 {
+      font-size: 28px; font-weight: 900; line-height: 1.2;
+      color: var(--text); margin-bottom: 12px;
+    }
+
+    .left-tagline h1 span {
+      background: linear-gradient(90deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .login-right { padding: 48px 44px; }
+    .auth-tabs { display: flex; gap: 20px; margin-bottom: 30px; border-bottom: 1px solid var(--border); }
+    .auth-tab {
+      padding: 10px 0; font-size: 15px; font-weight: 700; color: var(--muted);
+      text-decoration: none; position: relative; transition: color .2s;
+    }
+    .auth-tab.active { color: var(--cyan); }
+    .auth-tab.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+      height: 2px; background: var(--cyan); box-shadow: 0 0 10px var(--cyan);
+    }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text2); margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 10px; padding: 11px 16px; color: var(--text); font-family: inherit;
+      outline: none; transition: all .2s;
+    }
+    .form-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,245,255,.1); }
+
+    .submit-btn {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, var(--cyan), #0090ff);
+      color: #07080d; border: none; border-radius: 10px; font-weight: 800;
+      cursor: pointer; transition: all .2s; margin-top: 10px;
+    }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 32px rgba(0,245,255,.3); }
+
+    .errorlist { list-style: none; color: var(--pink); font-size: 12px; margin-top: 5px; }
+
+    @media (max-width: 640px) { .login-left { display: none; } .login-wrap { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="creatures-bg">
+  <div class="creature c1">🦫</div> <!-- Capybara -->
+  <div class="creature c2">🦦</div> <!-- Ferret (closest emoji) -->
+  <div class="creature c3">🐱</div> <!-- Cat -->
+  <div class="creature c4">🐶</div> <!-- Dog -->
+</div>
+
+<div class="login-wrap">
+  <div class="login-left">
+    <div>
+      <div class="left-logo">📊</div>
+      <div class="left-tagline">
+        <h1>Join the<br><span>Community</span></h1>
+        <p>Start tracking your team's progress with AppMarch. Fast, secure, and beautiful.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="auth-tabs">
+      <a href="{% url 'login' %}" class="auth-tab">Login</a>
+      <a href="{% url 'signup' %}" class="auth-tab active">Create Account</a>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      
+      <div class="form-group">
+        <label>Username</label>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password</label>
+        {{ form.confirm_password }}
+        {{ form.confirm_password.errors }}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="errorlist">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <button type="submit" class="submit-btn" style="background: linear-gradient(135deg, var(--violet), var(--pink)); color: white; box-shadow: 0 6px 20px rgba(168,85,247,.3);">Create Account →</button>
+    </form>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,391 @@
+{% extends 'app/base.html' %}
+{% block title %}{{ activity.team_name }} — AppMarch{% endblock %}
+{% block page_title %}Activity Detail{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 22px;
+    max-width: 1100px;
+  }
+
+  /* ── Gallery ── */
+  .gallery-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .main-photo-wrap {
+    position: relative; background: #060810;
+    overflow: hidden;
+  }
+
+  .main-photo {
+    width: 100%; max-height: 440px;
+    object-fit: contain; display: block;
+    background: #06080f;
+  }
+
+  .photo-placeholder {
+    width: 100%; height: 300px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px;
+    background: linear-gradient(135deg, rgba(0,245,255,.04), rgba(168,85,247,.04));
+  }
+
+  .photo-placeholder span { font-size: 56px; opacity: .2; }
+  .photo-placeholder p { font-size: 14px; color: var(--muted); font-weight: 500; }
+
+  /* Nav arrows */
+  .gallery-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    display: flex; justify-content: space-between;
+    width: 100%; padding: 0 12px; pointer-events: none;
+  }
+
+  .gnav-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all; transition: all .15s;
+  }
+
+  .gnav-btn:hover { background: rgba(0,245,255,.25); border-color: var(--cyan); color: var(--cyan); }
+
+  .photo-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--text); font-size: 12px; font-weight: 700;
+    padding: 5px 12px; border-radius: 99px; display: flex; align-items: center; gap: 6px;
+    font-family: var(--mono);
+  }
+
+  /* Thumbnail strip */
+  .thumb-strip {
+    display: flex; gap: 8px; padding: 12px 14px;
+    overflow-x: auto; background: rgba(0,0,0,.3);
+  }
+
+  .thumb-strip::-webkit-scrollbar { height: 4px; }
+
+  .th {
+    width: 68px; height: 50px; border-radius: 8px;
+    object-fit: cover; cursor: pointer; flex-shrink: 0;
+    border: 2px solid transparent; opacity: .55;
+    transition: all .15s;
+  }
+
+  .th.active, .th:hover {
+    border-color: var(--cyan); opacity: 1;
+    box-shadow: 0 0 12px rgba(0,245,255,.3);
+  }
+
+  /* ── Info card ── */
+  .info-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 26px;
+    margin-bottom: 20px;
+  }
+
+  .info-meta {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;
+  }
+
+  .info-title {
+    font-size: 24px; font-weight: 900; color: var(--text);
+    line-height: 1.3; letter-spacing: -.02em; margin-bottom: 20px;
+  }
+
+  .info-divider {
+    height: 1px; background: var(--border); margin: 20px 0;
+  }
+
+  .info-section-label {
+    font-size: 11px; font-weight: 800; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+
+  .members-grid { display: flex; flex-wrap: wrap; gap: 9px; }
+
+  .mem-chip {
+    display: flex; align-items: center; gap: 9px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border2);
+    padding: 8px 14px; border-radius: 99px;
+    transition: all .15s; cursor: default;
+  }
+
+  .mem-chip:hover {
+    background: rgba(0,245,255,.07);
+    border-color: rgba(0,245,255,.2);
+    color: var(--cyan);
+  }
+
+  .mem-av {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #07080d; flex-shrink: 0;
+  }
+
+  .mem-name { font-size: 14px; font-weight: 600; color: var(--text2); }
+
+  /* ── Right column ── */
+  .meta-list { display: flex; flex-direction: column; gap: 3px; }
+
+  .meta-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+  }
+
+  .meta-row:last-child { border-bottom: none; }
+
+  .meta-key {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  }
+
+  .meta-val {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    font-family: var(--mono);
+  }
+
+  .action-row {
+    display: flex; gap: 10px; margin-top: 18px;
+  }
+
+  /* Lightbox */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.95); backdrop-filter: blur(12px);
+    align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+  }
+  .lightbox.open { display: flex; }
+  .lb-close {
+    position: absolute; top: 20px; right: 24px;
+    font-size: 28px; color: var(--text2); cursor: pointer;
+    background: none; border: none; font-family: var(--font); transition: color .15s;
+  }
+  .lb-close:hover { color: var(--pink); }
+  .lb-img { max-width: 92vw; max-height: 82vh; object-fit: contain; border-radius: 10px; }
+  .lb-nav { display: flex; gap: 14px; }
+  .lb-btn {
+    padding: 9px 20px; border-radius: 10px; font-size: 14px;
+    font-weight: 700; font-family: var(--font);
+    background: var(--card); border: 1px solid var(--border2);
+    color: var(--text); cursor: pointer; transition: all .15s;
+  }
+  .lb-btn:hover { background: var(--border); }
+  .lb-counter { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+</style>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'history' %}" class="btn btn-ghost">← History</a>
+<a href="{% url 'add_activity' %}" class="btn btn-cyan">＋ New Activity</a>
+{% endblock %}
+
+{% block content %}
+{% with photos=activity.photos.all %}
+<div class="detail-grid">
+
+  <!-- Left -->
+  <div>
+    <!-- Gallery -->
+    <div class="gallery-card au">
+      <div class="main-photo-wrap">
+        {% if photos %}
+          <img src="{{ photos.0.image.url }}" class="main-photo" id="main-photo" alt="Activity photo">
+          {% if photos.count > 1 %}
+          <div class="gallery-nav">
+            <button class="gnav-btn" onclick="galleryPrev()">‹</button>
+            <button class="gnav-btn" onclick="galleryNext()">›</button>
+          </div>
+          {% endif %}
+          <div class="photo-badge">📷 <span id="photo-pos">1</span> / {{ photos.count }}</div>
+        {% else %}
+          <div class="photo-placeholder">
+            <span>📸</span>
+            <p>No photos for this activity</p>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if photos.count > 1 %}
+      <div class="thumb-strip">
+        {% for photo in photos %}
+        <img src="{{ photo.image.url }}" class="th {% if forloop.first %}active{% endif %}"
+             onclick="setPhoto({{ forloop.counter0 }}, this)"
+             ondblclick="openLightbox({{ forloop.counter0 }})"
+             alt="thumb {{ forloop.counter }}">
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Info -->
+    <div class="info-card au au1">
+      <div class="info-meta">
+        <span class="badge badge-cyan">{{ activity.team_name }}</span>
+        <span class="badge badge-violet">📅 {{ activity.date|date:"d M Y" }}</span>
+        <span class="badge badge-lime">{{ activity.member_count }} member{{ activity.member_count|pluralize }}</span>
+        {% if photos %}<span class="badge badge-pink">📷 {{ photos.count }} photo{{ photos.count|pluralize }}</span>{% endif %}
+      </div>
+
+      <div class="info-title">{{ activity.description }}</div>
+
+      <div class="info-divider"></div>
+
+      <div class="info-section-label">👥 Team Members</div>
+      <div class="members-grid">
+        {% for member in activity.get_members_list %}
+        <div class="mem-chip">
+          <div class="mem-av" style="background:{% cycle 'var(--cyan)' 'var(--violet)' 'var(--lime)' 'var(--orange)' 'var(--pink)' 'var(--yellow)' %}">{{ member|first|upper }}</div>
+          <div class="mem-name">{{ member }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if photos.count > 1 %}
+      <div class="info-divider"></div>
+      <div class="info-section-label">📷 All Photos <span style="color:var(--muted);font-size:10px;text-transform:none;letter-spacing:0;font-weight:400">— double-click thumbnail to enlarge</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;">
+        {% for photo in photos %}
+        <div style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;border:1px solid var(--border2)" onclick="openLightbox({{ forloop.counter0 }})">
+          <img src="{{ photo.image.url }}" style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" alt="">
+          <div style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.7);color:var(--text);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;font-family:var(--mono)">{{ forloop.counter }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if activity.documents.all %}
+      <div class="info-divider"></div>
+      <div class="info-section-label">📂 Attached Documents</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+        {% for doc in activity.documents.all %}
+        <a href="{{ doc.file.url }}" target="_blank" class="mem-chip" style="text-decoration:none; justify-content:flex-start; height:auto; padding:12px 16px;">
+          <div class="mem-av" style="background:var(--border2); color:var(--cyan); border-radius:8px;">📄</div>
+          <div style="display:flex; flex-direction:column; overflow:hidden;">
+            <div class="mem-name" style="font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ doc.filename }}</div>
+            <div style="font-size:10px; color:var(--muted); font-family:var(--mono);">{{ doc.uploaded_at|date:"d M H:i" }}</div>
+          </div>
+          <div style="margin-left:auto; font-size:14px; opacity:0.5;">↓</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right -->
+  <div>
+    <div class="card au au2">
+      <div class="card-header"><span class="card-title">Activity Info</span></div>
+      <div class="card-body">
+        <div class="meta-list">
+          <div class="meta-row">
+            <span class="meta-key">Team</span>
+            <span class="meta-val">{{ activity.team_name }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Date</span>
+            <span class="meta-val">{{ activity.date|date:"d M Y" }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Members</span>
+            <span class="meta-val">{{ activity.member_count }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Photos</span>
+            <span class="meta-val">{{ photos.count }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Documents</span>
+            <span class="meta-val">{{ activity.documents.count }}</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Logged</span>
+            <span class="meta-val" style="font-size:12px">{{ activity.created_at|date:"d M Y, H:i" }}</span>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <a href="{% url 'history' %}" class="btn btn-ghost" style="flex:1;justify-content:center;">← Back</a>
+          <form method="post" action="{% url 'delete_activity' activity.pk %}" onsubmit="return confirm('Delete this activity permanently?')" style="flex:1">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" style="width:100%;justify-content:center;">🗑 Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Photo URLs for JS -->
+<div id="photo-urls" style="display:none">{% for photo in photos %}{{ photo.image.url }}|{% endfor %}</div>
+{% endwith %}
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLb()">
+  <button class="lb-close" onclick="closeLb()">✕</button>
+  <img class="lb-img" id="lb-img" src="" alt="">
+  <div class="lb-counter" id="lb-counter"></div>
+  <div class="lb-nav">
+    <button class="lb-btn" onclick="lbPrev()">← Prev</button>
+    <button class="lb-btn" onclick="lbNext()">Next →</button>
+  </div>
+</div>
+
+<script>
+const raw = document.getElementById('photo-urls').textContent.trim();
+const photos = raw.split('|').filter(x => x.trim());
+let curIdx = 0;
+
+function setPhoto(idx, thumb) {
+  curIdx = idx;
+  if (photos[idx]) {
+    document.getElementById('main-photo').src = photos[idx];
+    document.getElementById('photo-pos').textContent = idx + 1;
+  }
+  document.querySelectorAll('.th').forEach(t => t.classList.remove('active'));
+  if (thumb) thumb.classList.add('active');
+  else {
+    const thumbs = document.querySelectorAll('.th');
+    if (thumbs[idx]) thumbs[idx].classList.add('active');
+  }
+}
+
+function galleryPrev() { setPhoto((curIdx - 1 + photos.length) % photos.length, null); }
+function galleryNext() { setPhoto((curIdx + 1) % photos.length, null); }
+
+function openLightbox(idx) {
+  curIdx = idx;
+  updateLb();
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function updateLb() {
+  document.getElementById('lb-img').src = photos[curIdx];
+  document.getElementById('lb-counter').textContent = `${curIdx + 1} / ${photos.length}`;
+}
+
+function lbPrev() { curIdx = (curIdx - 1 + photos.length) % photos.length; updateLb(); }
+function lbNext() { curIdx = (curIdx + 1) % photos.length; updateLb(); }
+function closeLb() { document.getElementById('lightbox').classList.remove('open'); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
+  if (e.key === 'Escape') closeLb();
+});
+</script>
+{% endblock %}

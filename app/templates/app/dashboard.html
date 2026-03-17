@@ -1,0 +1,337 @@
+{% extends 'app/base.html' %}
+{% block title %}Dashboard — AppMarch{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Dashboard grid ── */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 20px;
+  }
+
+  /* ── Featured activity ── */
+  .featured {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  /* Full-size image gallery */
+  .gallery-strip {
+    position: relative;
+    background: #070a14;
+    overflow: hidden;
+  }
+
+  .gallery-main {
+    width: 100%; height: 300px;
+    object-fit: cover; display: block;
+    transition: opacity .3s;
+  }
+
+  .gallery-placeholder {
+    width: 100%; height: 300px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(0,245,255,.05), rgba(168,85,247,.06));
+  }
+
+  .gallery-placeholder span { font-size: 48px; opacity: .3; }
+  .gallery-placeholder p { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  .gallery-thumbs {
+    display: flex; gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,.4);
+    overflow-x: auto;
+  }
+
+  .gallery-thumbs::-webkit-scrollbar { height: 3px; }
+
+  .thumb {
+    width: 58px; height: 42px; border-radius: 6px;
+    object-fit: cover; cursor: pointer; flex-shrink: 0;
+    border: 2px solid transparent;
+    transition: all .15s; opacity: .6;
+  }
+
+  .thumb.active, .thumb:hover { border-color: var(--cyan); opacity: 1; }
+
+  .gallery-count {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(0,0,0,.7); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.1);
+    color: var(--text); font-size: 12px; font-weight: 700;
+    padding: 4px 10px; border-radius: 99px;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .featured-body { padding: 22px 24px; }
+
+  .feat-meta {
+    display: flex; align-items: center; gap: 9px;
+    margin-bottom: 12px; flex-wrap: wrap;
+  }
+
+  .feat-date {
+    font-size: 12px; color: var(--muted); font-weight: 600;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .feat-title {
+    font-size: 22px; font-weight: 800;
+    color: var(--text); margin-bottom: 16px;
+    line-height: 1.3; letter-spacing: -.01em;
+  }
+
+  .members-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    display: flex; align-items: center; gap: 7px;
+    background: rgba(0,245,255,.07);
+    border: 1px solid rgba(0,245,255,.16);
+    color: var(--text2);
+    padding: 6px 13px; border-radius: 99px;
+    font-size: 13px; font-weight: 600;
+    transition: all .15s;
+  }
+
+  .chip:hover { background: rgba(0,245,255,.13); color: var(--cyan); }
+
+  .chip-av {
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    font-size: 10px; font-weight: 800; color: #07080d;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Chip avatar colors cycling */
+  .chip:nth-child(1) .chip-av { background: var(--cyan); }
+  .chip:nth-child(2) .chip-av { background: var(--violet); color:#fff; }
+  .chip:nth-child(3) .chip-av { background: var(--lime); }
+  .chip:nth-child(4) .chip-av { background: var(--orange); }
+  .chip:nth-child(5) .chip-av { background: var(--pink); color:#fff; }
+  .chip:nth-child(6) .chip-av { background: var(--yellow); }
+  .chip:nth-child(n+7) .chip-av { background: var(--cyan); }
+
+  /* ── Right column ── */
+  .right-col { display: flex; flex-direction: column; gap: 18px; }
+
+  /* Live badge */
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 99px;
+    background: rgba(181,255,58,.1);
+    border: 1px solid rgba(181,255,58,.2);
+    color: var(--lime); font-size: 11px; font-weight: 700;
+    letter-spacing: .06em;
+  }
+
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--lime);
+    animation: blink 1.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%,100% { opacity:1; box-shadow: 0 0 6px var(--lime); }
+    50%      { opacity:.3; box-shadow: none; }
+  }
+
+  /* Recent activity list */
+  .recents-list { }
+
+  .rec-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+    transition: padding-left .15s;
+    text-decoration: none;
+  }
+
+  .rec-item:hover { padding-left: 4px; }
+  .rec-item:last-child { border-bottom: none; }
+
+  .rec-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px;
+  }
+
+  .rec-team {
+    font-size: 14px; font-weight: 700; color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .rec-desc {
+    font-size: 12px; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .rec-date {
+    font-size: 11px; color: var(--muted); flex-shrink: 0; margin-top: 2px;
+    font-family: var(--mono); font-weight: 600;
+  }
+
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-size: 12px; font-weight: 800;
+    letter-spacing: .12em; text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .view-all {
+    font-size: 12px; color: var(--cyan); font-weight: 600;
+    text-decoration: none; transition: opacity .15s;
+  }
+
+  .view-all:hover { opacity: .7; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card au">
+    <div class="stat-accent-bar"></div>
+    <div class="stat-icon-wrap">📋</div>
+    <div class="stat-num">{{ total_activities }}</div>
+    <div class="stat-label">Total Activities</div>
+  </div>
+  <div class="stat-card au au1">
+    <div class="stat-accent-bar"></div>
+    <div class="stat-icon-wrap">👥</div>
+    <div class="stat-num">{{ total_teams }}</div>
+    <div class="stat-label">Teams</div>
+  </div>
+  <div class="stat-card au au2">
+    <div class="stat-accent-bar"></div>
+    <div class="stat-icon-wrap">👤</div>
+    <div class="stat-num">{{ total_members }}</div>
+    <div class="stat-label">Members</div>
+  </div>
+  <div class="stat-card au au3">
+    <div class="stat-accent-bar"></div>
+    <div class="stat-icon-wrap">📅</div>
+    <div class="stat-num" style="font-size:{% if recent %}20px{% else %}38px{% endif %};padding-top:{% if recent %}8px{% else %}0{% endif %}">
+      {% if recent %}{{ recent.date|date:"d M" }}{% else %}—{% endif %}
+    </div>
+    <div class="stat-label">Latest Activity</div>
+  </div>
+</div>
+
+{% if recent %}
+<div class="dash-grid">
+
+  <!-- Featured card -->
+  <div>
+    <div class="section-head">
+      <span class="section-title">Latest Activity</span>
+      <span class="live-badge"><span class="live-dot"></span>Live</span>
+    </div>
+
+    <div class="featured au au1">
+      <!-- Image gallery -->
+      <div class="gallery-strip">
+        {% with photos=recent.photos.all %}
+        {% if photos %}
+          <img src="{{ photos.0.image.url }}" class="gallery-main" id="gallery-main" alt="Activity photo">
+          {% if photos.count > 1 %}
+          <div class="gallery-count">📷 {{ photos.count }}</div>
+          <div class="gallery-thumbs">
+            {% for photo in photos %}
+            <img src="{{ photo.image.url }}" class="thumb {% if forloop.first %}active{% endif %}"
+                 onclick="switchPhoto(this, '{{ photo.image.url }}')" alt="thumb">
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="gallery-placeholder">
+            <span>📸</span>
+            <p>No photos uploaded</p>
+          </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      <!-- Activity info -->
+      <div class="featured-body">
+        <div class="feat-meta">
+          <span class="badge badge-cyan">{{ recent.team_name }}</span>
+          <span class="feat-date">📅 {{ recent.date|date:"d M Y" }}</span>
+          <span class="badge badge-violet">{{ recent.member_count }} member{{ recent.member_count|pluralize }}</span>
+        </div>
+        <div class="feat-title">{{ recent.description }}</div>
+        <div class="members-label">👥 Team Members</div>
+        <div class="chips">
+          {% for member in recent.get_members_list %}
+          <div class="chip">
+            <div class="chip-av">{{ member|first|upper }}</div>
+            {{ member }}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: recent list -->
+  <div class="right-col">
+    <div class="card au au2">
+      <div class="card-header">
+        <span class="card-title">Recent Activities</span>
+        <a href="{% url 'history' %}" class="view-all">View all →</a>
+      </div>
+      <div style="padding: 4px 20px;">
+        {% for activity in recent_activities %}
+        <a href="{% url 'activity_detail' activity.pk %}" class="rec-item">
+          {% with colors="var(--cyan),var(--violet),var(--lime),var(--orange),var(--pink),var(--yellow)" %}
+          <div class="rec-dot" style="background:{% cycle 'var(--cyan)' 'var(--violet)' 'var(--lime)' 'var(--orange)' 'var(--pink)' 'var(--yellow)' %};box-shadow:0 0 6px {% cycle 'var(--cyan)' 'var(--violet)' 'var(--lime)' 'var(--orange)' 'var(--pink)' 'var(--yellow)' %}"></div>
+          {% endwith %}
+          <div style="flex:1;min-width:0">
+            <div class="rec-team">{{ activity.team_name }}</div>
+            <div class="rec-desc">{{ activity.description|truncatechars:36 }}</div>
+          </div>
+          <div class="rec-date">{{ activity.date|date:"d M" }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<div class="card au">
+  <div class="empty-state">
+    <div class="ei">📋</div>
+    <h3>No Activities Yet</h3>
+    <p>Start tracking your team's daily work</p>
+    <br>
+    <a href="{% url 'add_activity' %}" class="btn btn-cyan">＋ Add First Activity</a>
+  </div>
+</div>
+{% endif %}
+
+<script>
+function switchPhoto(thumb, url) {
+  document.getElementById('gallery-main').src = url;
+  document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+  thumb.classList.add('active');
+}
+</script>
+{% endblock %}

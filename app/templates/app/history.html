@@ -1,0 +1,344 @@
+{% extends 'app/base.html' %}
+{% block title %}History — AppMarch{% endblock %}
+{% block page_title %}Activity History{% endblock %}
+
+{% block extra_css %}
+<style>
+  .history-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+
+  .search-wrap {
+    position: relative; flex: 1; max-width: 320px;
+  }
+
+  .search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%; background: var(--card);
+    border: 1px solid var(--border2); border-radius: 10px;
+    padding: 11px 16px 11px 42px;
+    color: var(--text); font-family: var(--font);
+    font-size: 14px; font-weight: 500; outline: none;
+    transition: border-color .2s, box-shadow .2s;
+  }
+
+  .search-input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0,245,255,.1); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .result-count {
+    font-size: 13px; color: var(--muted); font-weight: 600;
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+  /* ── Timeline ── */
+  .timeline { position: relative; padding-left: 32px; }
+
+  .timeline::before {
+    content: '';
+    position: absolute; left: 10px; top: 8px; bottom: 8px; width: 2px;
+    background: linear-gradient(to bottom, var(--cyan), var(--violet), rgba(255,255,255,.05));
+  }
+
+  .tl-item {
+    position: relative; margin-bottom: 20px;
+    animation: fadeUp .4s ease both;
+  }
+
+  .tl-item:nth-child(1) { animation-delay: .04s; }
+  .tl-item:nth-child(2) { animation-delay: .08s; }
+  .tl-item:nth-child(3) { animation-delay: .12s; }
+  .tl-item:nth-child(4) { animation-delay: .16s; }
+  .tl-item:nth-child(5) { animation-delay: .2s; }
+  .tl-item:nth-child(n+6) { animation-delay: .24s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .tl-node {
+    position: absolute; left: -27px; top: 18px;
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--bg);
+  }
+
+  .tl-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+  }
+
+  .tl-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    border-color: var(--border2);
+  }
+
+  .tl-inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .tl-left { padding: 20px 22px; }
+
+  .tl-header {
+    display: flex; align-items: center; gap: 9px;
+    margin-bottom: 10px; flex-wrap: wrap;
+  }
+
+  .tl-date {
+    font-size: 11px; font-weight: 700;
+    color: var(--muted); font-family: var(--mono);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 3px 9px; border-radius: 6px;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .tl-desc {
+    font-size: 16px; font-weight: 800; color: var(--text);
+    margin-bottom: 13px; line-height: 1.35;
+    letter-spacing: -.01em;
+  }
+
+  .tl-members { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .m-tag {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border2);
+    color: var(--text2); padding: 4px 10px;
+    border-radius: 99px; font-size: 12px; font-weight: 600;
+    transition: all .15s;
+  }
+
+  .m-tag:hover { background: rgba(0,245,255,.07); color: var(--cyan); border-color: rgba(0,245,255,.15); }
+
+  .m-init {
+    width: 18px; height: 18px; border-radius: 50%;
+    font-size: 9px; font-weight: 800; color: #07080d;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Photo strip */
+  .tl-right {
+    display: flex; flex-direction: column;
+    align-items: flex-end; justify-content: space-between;
+    padding: 18px 20px;
+    border-left: 1px solid var(--border);
+    min-width: 180px; max-width: 180px; gap: 12px;
+  }
+
+  .photo-strip { display: flex; gap: 6px; }
+
+  .strip-photo {
+    width: 70px; height: 52px; border-radius: 8px;
+    object-fit: cover; border: 1px solid var(--border2);
+    transition: all .15s; cursor: pointer;
+  }
+
+  .strip-photo:hover { transform: scale(1.05); border-color: var(--cyan); }
+
+  .strip-more {
+    width: 70px; height: 52px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border2);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--cyan);
+    cursor: pointer; transition: all .15s;
+  }
+
+  .strip-more:hover { background: rgba(0,245,255,.07); border-color: rgba(0,245,255,.2); }
+
+  .no-photo {
+    width: 70px; height: 52px; border-radius: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; opacity: .3;
+  }
+
+  .tl-actions { display: flex; gap: 8px; }
+
+  .btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 8px; }
+
+  /* Photo lightbox */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.92); backdrop-filter: blur(10px);
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 12px; object-fit: contain; }
+  .lightbox-close {
+    position: absolute; top: 20px; right: 24px;
+    font-size: 28px; color: var(--text2); cursor: pointer;
+    background: none; border: none; font-family: var(--font);
+    transition: color .15s;
+  }
+  .lightbox-close:hover { color: var(--pink); }
+  .lightbox-nav { display: flex; gap: 16px; }
+  .lb-btn {
+    padding: 10px 22px; border-radius: 10px; font-size: 14px;
+    font-weight: 700; font-family: var(--font);
+    background: var(--card); border: 1px solid var(--border2);
+    color: var(--text); cursor: pointer; transition: all .15s;
+  }
+  .lb-btn:hover { background: var(--border); }
+  .lightbox-counter { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-toolbar">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Search team, activity..." oninput="filterItems()">
+  </div>
+  <div class="result-count" id="resultCount">{{ activities.count }} activit{{ activities.count|pluralize:"y,ies" }}</div>
+  <a href="{% url 'add_activity' %}" class="btn btn-cyan btn-sm">＋ Add</a>
+</div>
+
+{% if activities %}
+<div class="timeline" id="timeline">
+  {% for activity in activities %}
+  {% with colors="cyan,violet,lime,orange,pink,yellow" %}
+  <div class="tl-item" data-search="{{ activity.team_name|lower }} {{ activity.description|lower }} {{ activity.members|lower }}">
+    <div class="tl-node" style="background:{% cycle 'var(--cyan)' 'var(--violet)' 'var(--lime)' 'var(--orange)' 'var(--pink)' 'var(--yellow)' %};box-shadow:0 0 8px {% cycle 'rgba(0,245,255,.6)' 'rgba(168,85,247,.6)' 'rgba(181,255,58,.6)' 'rgba(255,123,44,.6)' 'rgba(247,37,133,.6)' 'rgba(255,225,77,.6)' %}"></div>
+
+    <div class="tl-card">
+      <div class="tl-inner">
+        <div class="tl-left">
+          <div class="tl-header">
+            <span class="tl-date">📅 {{ activity.date|date:"d M Y" }}</span>
+            <span class="badge badge-cyan">{{ activity.team_name }}</span>
+            <span class="badge badge-violet">{{ activity.member_count }} member{{ activity.member_count|pluralize }}</span>
+            {% with cnt=activity.photos.count %}
+            {% if cnt > 0 %}<span class="badge badge-lime">📷 {{ cnt }} photo{{ cnt|pluralize }}</span>{% endif %}
+            {% endwith %}
+            {% with dcnt=activity.documents.count %}
+            {% if dcnt > 0 %}<span class="badge badge-pink">📂 {{ dcnt }} doc{{ dcnt|pluralize }}</span>{% endif %}
+            {% endwith %}
+          </div>
+          <div class="tl-desc">{{ activity.description }}</div>
+          <div class="tl-members">
+            {% for member in activity.get_members_list %}
+            <div class="m-tag">
+              <div class="m-init" style="background:{% cycle 'var(--cyan)' 'var(--violet)' 'var(--lime)' 'var(--orange)' 'var(--pink)' 'var(--yellow)' %}">{{ member|first|upper }}</div>
+              {{ member }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="tl-right">
+          <!-- Photos -->
+          <div class="photo-strip">
+            {% with photos=activity.photos.all %}
+            {% if photos %}
+              {% for photo in photos|slice:":1" %}
+              <img src="{{ photo.image.url }}" class="strip-photo"
+                   onclick="openLightbox({{ activity.pk }})" alt="photo">
+              {% endfor %}
+              {% if photos.count > 1 %}
+              <div class="strip-more" onclick="openLightbox({{ activity.pk }})">
+                <span>+{{ photos.count|add:"-1" }}</span>
+                <span>more</span>
+              </div>
+              {% endif %}
+            {% else %}
+              <div class="no-photo">📷</div>
+            {% endif %}
+            {% endwith %}
+          </div>
+
+          <div class="tl-actions">
+            <a href="{% url 'activity_detail' activity.pk %}" class="btn btn-ghost btn-sm">View</a>
+            <form method="post" action="{% url 'delete_activity' activity.pk %}" style="display:inline" onsubmit="return confirm('Delete this activity?')">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm">🗑</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden photo data for lightbox -->
+    <div id="lb-data-{{ activity.pk }}" style="display:none">
+      {% for photo in activity.photos.all %}{{ photo.image.url }}|{% endfor %}
+    </div>
+  </div>
+  {% endwith %}
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="ei">📋</div>
+    <h3>No Activities Yet</h3>
+    <p>Start logging your team's daily sessions</p>
+    <br>
+    <a href="{% url 'add_activity' %}" class="btn btn-cyan">＋ Add First Activity</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightboxBg(event)">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lb-img" src="" alt="Photo">
+  <div class="lightbox-counter" id="lb-counter"></div>
+  <div class="lightbox-nav">
+    <button class="lb-btn" onclick="lbPrev()">← Prev</button>
+    <button class="lb-btn" onclick="lbNext()">Next →</button>
+  </div>
+</div>
+
+<script>
+function filterItems() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const items = document.querySelectorAll('.tl-item');
+  let n = 0;
+  items.forEach(item => {
+    const show = item.dataset.search.includes(q);
+    item.style.display = show ? '' : 'none';
+    if (show) n++;
+  });
+  document.getElementById('resultCount').textContent = `${n} activit${n===1?'y':'ies'}`;
+}
+
+let lbPhotos = [], lbIdx = 0;
+
+function openLightbox(id) {
+  const raw = document.getElementById('lb-data-' + id).textContent.trim();
+  lbPhotos = raw.split('|').filter(x => x.trim());
+  lbIdx = 0;
+  showLbPhoto();
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function showLbPhoto() {
+  document.getElementById('lb-img').src = lbPhotos[lbIdx];
+  document.getElementById('lb-counter').textContent = `${lbIdx + 1} / ${lbPhotos.length}`;
+}
+
+function lbPrev() { lbIdx = (lbIdx - 1 + lbPhotos.length) % lbPhotos.length; showLbPhoto(); }
+function lbNext() { lbIdx = (lbIdx + 1) % lbPhotos.length; showLbPhoto(); }
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+function closeLightboxBg(e) { if (e.target === document.getElementById('lightbox')) closeLightbox(); }
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lightbox').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft') lbPrev();
+  if (e.key === 'ArrowRight') lbNext();
+  if (e.key === 'Escape') closeLightbox();
+});
+</script>
+{% endblock %}

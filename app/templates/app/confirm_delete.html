@@ -1,0 +1,27 @@
+{% extends 'app/base.html' %}
+{% block title %}Delete — AppMarch{% endblock %}
+{% block page_title %}Delete Activity{% endblock %}
+
+{% block content %}
+<div style="max-width:460px;margin:60px auto;">
+  <div class="card au" style="text-align:center;">
+    <div class="card-body" style="padding:44px 36px;">
+      <div style="font-size:52px;margin-bottom:16px;">🗑️</div>
+      <h2 style="font-size:22px;font-weight:900;color:var(--text);margin-bottom:10px;">Delete Activity?</h2>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:8px;">You're about to permanently delete:</p>
+      <p style="font-weight:800;font-size:16px;color:var(--text);margin-bottom:6px;">{{ activity.team_name }}</p>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:28px;">{{ activity.date|date:"d M Y" }}</p>
+      <div style="background:rgba(247,37,133,.07);border:1px solid rgba(247,37,133,.18);border-radius:10px;padding:12px 16px;margin-bottom:28px;">
+        <p style="color:var(--pink);font-size:13px;font-weight:600;">⚠️ This action cannot be undone. All photos will also be deleted.</p>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Yes, Delete Permanently</button>
+        </form>
+        <a href="{% url 'history' %}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
